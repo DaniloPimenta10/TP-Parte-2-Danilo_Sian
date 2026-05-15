@@ -29,3 +29,5 @@ void carrega_times(BDTimes *bd, char *caminho) {
     }
     fclose(f);
 }
+
+void 

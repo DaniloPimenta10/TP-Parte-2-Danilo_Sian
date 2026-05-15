@@ -9,5 +9,6 @@ typedef struct {
 
 int pontos_ganhos(Time t);
 int saldo_gols(Time t);
+void dados_time(Time t);
 
 #endif
