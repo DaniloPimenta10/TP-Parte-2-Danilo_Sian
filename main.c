@@ -10,7 +10,7 @@ int main() {
     
     while(acesso != 'Q' && acesso != 'q'){ // Condição para sair
 
-    printf("Sistema de gerenciamento de Partidas \n ");
+    printf("Sistema de gerenciamento de Partidas \n");
     printf("1 - Consultar Times \n");
     printf("2 - Consultar Partidas \n");
     printf("3 - Imprimir Tabela de Classificação \n");
