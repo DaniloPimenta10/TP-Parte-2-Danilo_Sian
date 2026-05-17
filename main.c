@@ -6,6 +6,7 @@ int main() {
     BDTimes bdt;
     BDPartidas bdp;
     carrega_times(&bdt, "times.csv");
+    carrega_partidas(&bdp, &bdt, "partidas_parcial.csv");
     char acesso = 0;
     
     while(acesso != 'Q' && acesso != 'q'){ // Condição para sair
@@ -21,9 +22,12 @@ int main() {
 
     //if(acesso == '2') //Acesso a consulta das partidas
 
-    //if(acesso == '3') //Acesso a tabela
+    if(acesso == '3') {  //Acesso a tabela
     
+        imprimir_tabela(&bdt); 
+        printf("\n");
 
+    }    
     }
 
     return 0;

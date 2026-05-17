@@ -33,7 +33,11 @@ void carrega_times(BDTimes *bd, char *caminho) {
 void imprimir_tabela(BDTimes *bd) {
     int times_por_pagina = 5;
 
-    printf("ID Time            V  E  D  GM GS S  PG\n");
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF); // Limpando o Buffer
+
+
+    printf("ID Nome                    V  E  D  GM GS  S PG\n");
     for (int i = 0; i < bd->qtd; i++) {
         dados_time(bd->times[i]);
     
@@ -46,6 +50,7 @@ void imprimir_tabela(BDTimes *bd) {
     fgets(pausa, sizeof(pausa), stdin);
     
     printf("\n=== PRÓXIMA PÁGINA ===\n\n");
+    printf("ID Nome                    V  E  D  GM GS  S PG\n");
     }
     }
 }
