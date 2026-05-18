@@ -58,9 +58,25 @@ void buscar_time(BDTimes *bd, char *prefixo) {
 
 // Imprime a tabela de classificacao na ordem dos IDs dos times.
 void imprimir_tabela(BDTimes *bd) {
-    printf("ID Nome                    V  E  D  GM GS  S PG\n");
+    int times_por_pagina = 5;
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF); // Limpando o Buffer
 
+
+    printf("ID Nome                    V  E  D  GM GS  S PG\n");
     for (int i = 0; i < bd->qtd; i++) {
         dados_time(bd->times[i]);
+
+    if ((i + 1) % times_por_pagina == 0 && (i + 1) < bd->qtd) { // Paginação da saida 
+    char pausa[10];
+
+    printf("\n--- Pressione [ENTER] para ver a próxima página ---");
+
+
+    fgets(pausa, sizeof(pausa), stdin);
+
+    printf("\n=== PRÓXIMA PÁGINA ===\n\n");
+    printf("ID Nome                    V  E  D  GM GS  S PG\n");
+    }
     }
 }

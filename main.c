@@ -62,7 +62,11 @@ int main() {
         } else {
             printf("Opção invalida.\n");
         }
+        
+        printf("\n");
+    
     }
+
 
     return 0;
 }
