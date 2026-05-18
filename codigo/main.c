@@ -12,10 +12,10 @@ int main() {
      * para testar outros cenarios, basta trocar o nome abaixo por:
      * "partidas_vazio.csv", "partidas_parcial.csv" ou "partidas_completo.csv".
      */
-    char arquivo_partidas[] = "partidas_completo.csv";
+    char arquivo_partidas[] = "dados/partidas_completo.csv";
 
     // carrega os dados dos arquivos CSV para a memoria antes do menu iniciar
-    carrega_times(&bdt, "times.csv");
+    carrega_times(&bdt, "dados/times.csv");
     carrega_partidas(&bdp, &bdt, arquivo_partidas);
 
     while (acesso != 'Q' && acesso != 'q') { // repete ate o usuario escolher sair
