@@ -90,7 +90,7 @@ Busca por Prefixo Insensível a Caso (Case‑Insensitive): Utilização da funç
 
 Saneamento Preventivo do Buffer do stdin: A transição de leitura entre opções capturadas via caractere (scanf) e comandos por tecla gera quebras de linha residuais (\n) na memória. Foi embutido um laço while ((c = getchar()) != '\n' && c != EOF); antes de exibir tabelas para impedir que o sistema pule opções automaticamente.
 
-Máscaras de Formatação Fixa: Alinhamento estético homogêneo no terminal utilizando formatação elástica à esquerda (%-20s) para nomes de clubes e reservas simétricas à direita (%2d, %3d) para as colunas numéricas, replicando o visual de uma planilha de dados.
+Máscaras de Formatação Fixa: Alinhamento estético homogêneo no terminal utilizando formatação elástica à esquerda (%-10s) para nomes de clubes e reservas simétricas à direita (%3d) para as colunas numéricas, replicando o visual de uma planilha de dados.
 
 ---
 
