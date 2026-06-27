@@ -12,6 +12,12 @@ typedef struct {
     int gs; // gols sofridos
 } Time;
 
+// Nó da lista encadeada de times
+typedef struct NodeTime {
+    Time data;
+    struct NodeTime *prox;
+} NodeTime;
+
 // Funcoes publicas do TAD Time.
 int pontos_ganhos(Time t);
 int saldo_gols(Time t);

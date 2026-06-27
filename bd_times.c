@@ -1,11 +1,13 @@
 #include "bd_times.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 
-// Carrega o arquivo times.csv para o vetor de times do banco.
+// Carrega o arquivo times.csv para a lista encadeada de times.
 void carrega_times(BDTimes *bd, char *caminho) {
-    bd->qtd = 0; // cont de times comeca com 0
+    bd->inicio = NULL;
+    bd->qtd = 0;
 
     FILE *f = fopen(caminho, "r");
     if (!f) {
@@ -13,22 +15,38 @@ void carrega_times(BDTimes *bd, char *caminho) {
         return;
     }
 
-    char buffer[100]; // espaco usado para ler uma linha por vez
+    char buffer[100];
 
-    // Pula a primeira linha, que e o cabecalho do CSV.
+    // Pula o cabeçalho do CSV.
     fgets(buffer, sizeof(buffer), f);
 
-    // Le os times ate acabar o arquivo ou ate preencher as 10 posicoes.
-    while (bd->qtd < 10 && fgets(buffer, sizeof(buffer), f)) {
-        if (sscanf(buffer, "%d,%[^\n\r]", &bd->times[bd->qtd].id, bd->times[bd->qtd].nome) == 2) {
-            // As estatisticas comecam zeradas e serao atualizadas pelas partidas.
-            bd->times[bd->qtd].v = 0;
-            bd->times[bd->qtd].e = 0;
-            bd->times[bd->qtd].d = 0;
-            bd->times[bd->qtd].gm = 0;
-            bd->times[bd->qtd].gs = 0;
+    while (fgets(buffer, sizeof(buffer), f)) {
+        Time t;
+        if (sscanf(buffer, "%d,%[^\n\r]", &t.id, t.nome) == 2) {
+            // Estatísticas começam zeradas.
+            t.v = t.e = t.d = t.gm = t.gs = 0;
 
-            // Adiciona mais 1 time na quantidade cadastrada.
+            // Aloca um novo nó.
+            NodeTime *novo = (NodeTime *)malloc(sizeof(NodeTime));
+            if (!novo) {
+                printf("Erro de alocacao de memoria.\n");
+                break;
+            }
+
+            novo->data = t;
+            novo->prox = NULL;
+
+            // Insere no final da lista para manter a ordem do CSV.
+            if (bd->inicio == NULL) {
+                bd->inicio = novo;
+            } else {
+                NodeTime *aux = bd->inicio;
+                while (aux->prox != NULL) {
+                    aux = aux->prox;
+                }
+                aux->prox = novo;
+            }
+
             bd->qtd++;
         }
     }
@@ -36,19 +54,30 @@ void carrega_times(BDTimes *bd, char *caminho) {
     fclose(f);
 }
 
-// Busca times cujo nome comeca com o prefixo informado pelo usuario.
-void buscar_time(BDTimes *bd, char *prefixo) {
-    int found = 0; // controla se algum time foi encontrado
+// Retorna ponteiro para o time com o ID informado, ou NULL se não encontrar.
+NodeTime *buscar_time_por_id_node(BDTimes *bd, int id) {
+    NodeTime *aux = bd->inicio;
+    while (aux != NULL) {
+        if (aux->data.id == id) return aux;
+        aux = aux->prox;
+    }
+    return NULL;
+}
 
-    for (int i = 0; i < bd->qtd; i++) {
-        if (strncasecmp(bd->times[i].nome, prefixo, strlen(prefixo)) == 0) {
+// Busca times cujo nome começa com o prefixo informado.
+void buscar_time(BDTimes *bd, char *prefixo) {
+    int found = 0;
+    NodeTime *aux = bd->inicio;
+
+    while (aux != NULL) {
+        if (strncasecmp(aux->data.nome, prefixo, strlen(prefixo)) == 0) {
             if (!found) {
                 printf("ID   Time         V   E   D  GM  GS   S PG\n");
             }
-
-            dados_time(bd->times[i]);
+            dados_time(aux->data);
             found = 1;
         }
+        aux = aux->prox;
     }
 
     if (!found) {
@@ -56,27 +85,79 @@ void buscar_time(BDTimes *bd, char *prefixo) {
     }
 }
 
-// Imprime a tabela de classificacao na ordem dos IDs dos times.
-void imprimir_tabela(BDTimes *bd) {
-    int times_por_pagina = 5;
-    int c;
-    while ((c = getchar()) != '\n' && c != EOF); // Limpando o Buffer
+// Copia a lista para um vetor auxiliar e ordena por PG > V > Saldo de Gols.
+static void ordenar_times(NodeTime **vetor, int qtd) {
+    for (int i = 0; i < qtd - 1; i++) {
+        for (int j = 0; j < qtd - i - 1; j++) {
+            Time a = vetor[j]->data;
+            Time b = vetor[j + 1]->data;
 
+            int pg_a = pontos_ganhos(a), pg_b = pontos_ganhos(b);
+            int sg_a = saldo_gols(a),    sg_b = saldo_gols(b);
+
+            int trocar = 0;
+            if (pg_a < pg_b) trocar = 1;
+            else if (pg_a == pg_b && a.v < b.v) trocar = 1;
+            else if (pg_a == pg_b && a.v == b.v && sg_a < sg_b) trocar = 1;
+
+            if (trocar) {
+                NodeTime *tmp = vetor[j];
+                vetor[j] = vetor[j + 1];
+                vetor[j + 1] = tmp;
+            }
+        }
+    }
+}
+
+// Imprime a tabela de classificação ordenada, com paginação de 5 em 5.
+void imprimir_tabela(BDTimes *bd) {
+    if (bd->qtd == 0) {
+        printf("Nenhum time cadastrado.\n");
+        return;
+    }
+
+    // Copia ponteiros da lista para vetor auxiliar para ordenar.
+    NodeTime **vetor = (NodeTime **)malloc(bd->qtd * sizeof(NodeTime *));
+    if (!vetor) {
+        printf("Erro de alocacao de memoria.\n");
+        return;
+    }
+
+    NodeTime *aux = bd->inicio;
+    for (int i = 0; i < bd->qtd; i++) {
+        vetor[i] = aux;
+        aux = aux->prox;
+    }
+
+    ordenar_times(vetor, bd->qtd);
+
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF); // limpa buffer
 
     printf("ID   Time         V   E   D  GM  GS   S PG\n");
     for (int i = 0; i < bd->qtd; i++) {
-        dados_time(bd->times[i]);
+        dados_time(vetor[i]->data);
 
-    if ((i + 1) % times_por_pagina == 0 && (i + 1) < bd->qtd) { // Paginação da saida 
-    char pausa[10];
-
-    printf("\n--- Pressione [ENTER] para ver a próxima página ---");
-
-
-    fgets(pausa, sizeof(pausa), stdin);
-
-    printf("\n=== PRÓXIMA PÁGINA ===\n\n");
-    printf("ID   Time         V   E   D  GM  GS   S PG\n");
+        if ((i + 1) % 5 == 0 && (i + 1) < bd->qtd) {
+            char pausa[10];
+            printf("\n--- Pressione [ENTER] para ver a proxima pagina ---");
+            fgets(pausa, sizeof(pausa), stdin);
+            printf("\n=== PROXIMA PAGINA ===\n\n");
+            printf("ID   Time         V   E   D  GM  GS   S PG\n");
+        }
     }
+
+    free(vetor);
+}
+
+// Libera toda a memória alocada pela lista de times.
+void liberar_times(BDTimes *bd) {
+    NodeTime *aux = bd->inicio;
+    while (aux != NULL) {
+        NodeTime *prox = aux->prox;
+        free(aux);
+        aux = prox;
     }
+    bd->inicio = NULL;
+    bd->qtd = 0;
 }

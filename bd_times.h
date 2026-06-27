@@ -3,9 +3,9 @@
 
 #include "time.h"
 
-// TAD que guarda todos os times carregados do arquivo times.csv.
+// TAD que gerencia a lista encadeada de times.
 typedef struct {
-    Time times[10];
+    NodeTime *inicio;
     int qtd;
 } BDTimes;
 
@@ -13,5 +13,6 @@ typedef struct {
 void carrega_times(BDTimes *bd, char *caminho);
 void buscar_time(BDTimes *bd, char *prefixo);
 void imprimir_tabela(BDTimes *bd);
+void liberar_times(BDTimes *bd); 
 
 #endif
