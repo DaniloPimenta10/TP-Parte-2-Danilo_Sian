@@ -47,6 +47,11 @@ static void aplicar_estatisticas(Time *t1, Time *t2, int gols1, int gols2) {
     }
 }
 
+// Compara somente o comeco do nome, ignorando maiusculas/minusculas.
+static int prefixo_igual(char *nome, char *prefixo) {
+    return strncasecmp(nome, prefixo, strlen(prefixo)) == 0;
+}
+
 // Carrega as partidas do CSV e atualiza as estatisticas dos times.
 void carrega_partidas(BDPartidas *bdp, BDTimes *bdt, char *caminho) {
     bdp->inicio = NULL;
@@ -68,8 +73,8 @@ void carrega_partidas(BDPartidas *bdp, BDTimes *bdt, char *caminho) {
 
         if (sscanf(buffer, "%d,%d,%d,%d,%d",
                    &p.id, &p.idTime1, &p.idTime2, &p.gols1, &p.gols2) == 5) {
-            NodeTime *n1 = buscar_time_por_id_node(bdt, p.idTime1);
-            NodeTime *n2 = buscar_time_por_id_node(bdt, p.idTime2);
+            NodeTime *n1 = buscar_id(bdt, p.idTime1);
+            NodeTime *n2 = buscar_id(bdt, p.idTime2);
 
             // Se a partida tiver algum ID de time invalido, ela e ignorada.
             if (n1 != NULL && n2 != NULL) {
@@ -93,13 +98,12 @@ void consulta_partidas(BDPartidas *bdp, BDTimes *bdt, char *nome, int modo) {
         return;
     }
 
-    int found = 0; // flag: muda para 1 se encontrar partida
+    int found = 0;
     NodePartida *aux = bdp->inicio;
 
     while (aux != NULL) {
         Partida p = aux->data;
 
-        // Recupera os dados completos dos times envolvidos na partida.
         NodeTime *n1 = buscar_id(bdt, p.idTime1);
         NodeTime *n2 = buscar_id(bdt, p.idTime2);
 
@@ -108,7 +112,6 @@ void consulta_partidas(BDPartidas *bdp, BDTimes *bdt, char *nome, int modo) {
             char *nome2 = n2->data.nome;
             int match = 0;
 
-            // Decide se a partida atual entra no resultado da consulta.
             if (modo == 1 && prefixo_igual(nome1, nome)) {
                 match = 1;
             } else if (modo == 2 && prefixo_igual(nome2, nome)) {
@@ -132,4 +135,269 @@ void consulta_partidas(BDPartidas *bdp, BDTimes *bdt, char *nome, int modo) {
     if (!found) {
         printf("Nenhuma partida encontrada.\n");
     }
+}
+
+// Gera o proximo ID disponivel para uma nova partida (autoincremento).
+static int proximo_id(BDPartidas *bdp) {
+    int maior = -1;
+    NodePartida *aux = bdp->inicio;
+
+    while (aux != NULL) {
+        if (aux->data.id > maior) {
+            maior = aux->data.id;
+        }
+        aux = aux->prox;
+    }
+
+    return maior + 1;
+}
+
+// Insere uma nova partida no sistema, validando os times informados.
+void inserir_partida(BDPartidas *bdp, BDTimes *bdt) {
+    int idTime1, idTime2, gols1, gols2;
+
+    printf("Para inserir um novo registro, digite os valores para os campos Time1, Time2, Placar1 e Placar2:\n");
+
+    scanf("%d", &idTime1);
+    scanf("%d", &idTime2);
+    scanf("%d", &gols1);
+    scanf("%d", &gols2);
+
+    NodeTime *n1 = buscar_id(bdt, idTime1);
+    NodeTime *n2 = buscar_id(bdt, idTime2);
+
+    if (n1 == NULL || n2 == NULL) {
+        printf("Erro: um ou ambos os times informados nao existem.\n");
+        return;
+    }
+
+    if (gols1 < 0 || gols2 < 0) {
+        printf("Erro: os placares nao podem ser negativos.\n");
+        return;
+    }
+
+    Partida p;
+    p.id = proximo_id(bdp);
+    p.idTime1 = idTime1;
+    p.idTime2 = idTime2;
+    p.gols1 = gols1;
+    p.gols2 = gols2;
+
+    printf("Confirma a insercao do registro abaixo? (S/N)\n");
+    printf("ID Time1 Time2 Placar1 Placar2\n");
+    printf("%d %s %s %d %d\n", p.id, n1->data.nome, n2->data.nome, p.gols1, p.gols2);
+
+    char confirma;
+    scanf(" %c", &confirma);
+
+    if (confirma == 'S' || confirma == 's') {
+        aplicar_estatisticas(&n1->data, &n2->data, gols1, gols2);
+        inserir_no_final(bdp, p);
+        printf("O registro foi inserido com sucesso.\n");
+    } else {
+        printf("Insercao cancelada.\n");
+    }
+}
+
+// Desfaz o resultado de uma partida das estatisticas dos times envolvidos.
+static void desfazer_estatisticas(Time *t1, Time *t2, int gols1, int gols2) {
+    t1->gm -= gols1;
+    t1->gs -= gols2;
+    t2->gm -= gols2;
+    t2->gs -= gols1;
+
+    if (gols1 > gols2) {
+        t1->v -= 1;
+        t2->d -= 1;
+    } else if (gols1 < gols2) {
+        t2->v -= 1;
+        t1->d -= 1;
+    } else {
+        t1->e -= 1;
+        t2->e -= 1;
+    }
+}
+
+// Remove uma partida existente, atualizando as estatisticas dos times.
+void remover_partida(BDPartidas *bdp, BDTimes *bdt) {
+    int modo;
+    char nome[50];
+
+    printf("Modo (1-Mandante, 2-Visitante, 3-Ambos, 4-Voltar): ");
+    scanf("%d", &modo);
+
+    if (modo == 4) {
+        return;
+    }
+
+    printf("Nome/Prefixo: ");
+    scanf("%49s", nome);
+    consulta_partidas(bdp, bdt, nome, modo);
+
+    int id;
+    printf("Digite o ID do registro a ser removido: ");
+    scanf("%d", &id);
+
+    // Procura o no a remover e o no anterior a ele (para religar a lista).
+    NodePartida *atual = bdp->inicio;
+    NodePartida *anterior = NULL;
+
+    while (atual != NULL && atual->data.id != id) {
+        anterior = atual;
+        atual = atual->prox;
+    }
+
+    if (atual == NULL) {
+        printf("Erro: partida com ID %d nao encontrada.\n", id);
+        return;
+    }
+
+    NodeTime *n1 = buscar_id(bdt, atual->data.idTime1);
+    NodeTime *n2 = buscar_id(bdt, atual->data.idTime2);
+
+    printf("Tem certeza de que deseja excluir o registro abaixo? (S/N)\n");
+    printf("ID Time1 Time2 Placar1 Placar2\n");
+    printf("%d %s %s %d %d\n", atual->data.id,
+           n1 ? n1->data.nome : "?", n2 ? n2->data.nome : "?",
+           atual->data.gols1, atual->data.gols2);
+
+    char confirma;
+    scanf(" %c", &confirma);
+
+    if (confirma == 'S' || confirma == 's') {
+        // Desfaz o impacto da partida nas estatisticas dos times.
+        if (n1 != NULL && n2 != NULL) {
+            desfazer_estatisticas(&n1->data, &n2->data, atual->data.gols1, atual->data.gols2);
+        }
+
+        // Religa a lista pulando o no removido.
+        if (anterior == NULL) {
+            bdp->inicio = atual->prox;
+        } else {
+            anterior->prox = atual->prox;
+        }
+
+        free(atual);
+        bdp->qtd--;
+
+        printf("Registro removido com sucesso.\n");
+    } else {
+        printf("Remocao cancelada.\n");
+    }
+}
+
+// Atualiza o placar de uma partida existente, recalculando as estatisticas.
+void atualizar_partida(BDPartidas *bdp, BDTimes *bdt) {
+    int modo;
+    char nome[50];
+
+    printf("Modo (1-Mandante, 2-Visitante, 3-Ambos, 4-Voltar): ");
+    scanf("%d", &modo);
+
+    if (modo == 4) {
+        return;
+    }
+
+    printf("Nome/Prefixo: ");
+    scanf("%49s", nome);
+    consulta_partidas(bdp, bdt, nome, modo);
+
+    int id;
+    printf("Digite o ID do registro a ser atualizado: ");
+    scanf("%d", &id);
+
+    // Procura a partida na lista.
+    NodePartida *atual = bdp->inicio;
+    while (atual != NULL && atual->data.id != id) {
+        atual = atual->prox;
+    }
+
+    if (atual == NULL) {
+        printf("Erro: partida com ID %d nao encontrada.\n", id);
+        return;
+    }
+
+    NodeTime *n1 = buscar_id(bdt, atual->data.idTime1);
+    NodeTime *n2 = buscar_id(bdt, atual->data.idTime2);
+
+    if (n1 == NULL || n2 == NULL) {
+        printf("Erro: times da partida nao encontrados.\n");
+        return;
+    }
+
+    // Le os novos valores. "-" mantem o valor atual.
+    char entrada1[10], entrada2[10];
+    int novoGols1 = atual->data.gols1;
+    int novoGols2 = atual->data.gols2;
+
+    printf("Digite o novo valor para os campos Placar1 e Placar2 (para\n");
+    printf("manter o valor atual de um campo, digite '-'):\n");
+
+    scanf("%9s", entrada1);
+    scanf("%9s", entrada2);
+
+    if (strcmp(entrada1, "-") != 0) {
+        novoGols1 = atoi(entrada1);
+    }
+    if (strcmp(entrada2, "-") != 0) {
+        novoGols2 = atoi(entrada2);
+    }
+
+    printf("Confirma os novos valores para o registro abaixo? (S/N)\n");
+    printf("ID Time1 Time2 Placar1 Placar2\n");
+    printf("%d %s %s %d %d\n", atual->data.id, n1->data.nome, n2->data.nome,
+           novoGols1, novoGols2);
+
+    char confirma;
+    scanf(" %c", &confirma);
+
+    if (confirma == 'S' || confirma == 's') {
+        // Desfaz o impacto do placar antigo e aplica o novo.
+        desfazer_estatisticas(&n1->data, &n2->data, atual->data.gols1, atual->data.gols2);
+        aplicar_estatisticas(&n1->data, &n2->data, novoGols1, novoGols2);
+
+        atual->data.gols1 = novoGols1;
+        atual->data.gols2 = novoGols2;
+
+        printf("Registro atualizado com sucesso.\n");
+    } else {
+        printf("Atualizacao cancelada.\n");
+    }
+}
+
+// Salva o estado atual da lista de partidas de volta no arquivo CSV.
+void salvar_partidas(BDPartidas *bdp, char *caminho) {
+    FILE *f = fopen(caminho, "w");
+    if (!f) {
+        printf("Erro ao salvar arquivo de partidas: %s\n", caminho);
+        return;
+    }
+
+    // Escreve o cabecalho, no mesmo formato do arquivo original.
+    fprintf(f, "ID,Time1,Time2,GolsTime1,GolsTime2\n");
+
+    NodePartida *aux = bdp->inicio;
+    while (aux != NULL) {
+        fprintf(f, "%d,%d,%d,%d,%d\n",
+                aux->data.id,
+                aux->data.idTime1,
+                aux->data.idTime2,
+                aux->data.gols1,
+                aux->data.gols2);
+        aux = aux->prox;
+    }
+
+    fclose(f);
+}
+
+// Libera toda a memoria alocada pela lista de partidas.
+void liberar_partidas(BDPartidas *bdp) {
+    NodePartida *aux = bdp->inicio;
+    while (aux != NULL) {
+        NodePartida *prox = aux->prox;
+        free(aux);
+        aux = prox;
+    }
+    bdp->inicio = NULL;
+    bdp->qtd = 0;
 }

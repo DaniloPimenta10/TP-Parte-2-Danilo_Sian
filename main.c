@@ -3,28 +3,23 @@
 #include "bd_partidas.h"
 
 int main() {
-    BDTimes bdt;      // banco de dados dos times
-    BDPartidas bdp;  // banco de dados das partidas
-    char acesso = 0; // guarda a opcao escolhida no menu
+    BDTimes bdt;
+    BDPartidas bdp;
+    char acesso = 0;
 
-    /*
-     * aqui escolhemos qual arquivo de partidas sera carregado.
-     * para testar outros cenarios, basta trocar o nome abaixo por:
-     * "partidas_vazio.csv", "partidas_parcial.csv" ou "partidas_completo.csv".
-     */
-    char arquivo_partidas[] = "partidas_completo.csv";
+    char arquivo_times[] = "times.csv";
+    char arquivo_partidas[] = "partidas.csv";
 
-    // carrega os dados dos arquivos CSV para a memoria antes do menu iniciar
-    carrega_times(&bdt, "times.csv");
+    carrega_times(&bdt, arquivo_times);
     carrega_partidas(&bdp, &bdt, arquivo_partidas);
 
-    while (acesso != 'Q' && acesso != 'q') { // repete ate o usuario escolher sair
+    while (acesso != 'Q' && acesso != 'q') {
         printf("Sistema de gerenciamento de Partidas \n");
         printf("1 - Consultar time \n");
         printf("2 - Consultar partidas \n");
-        printf("3 - Atualizar partida (desabilitado nesta etapa) \n");
-        printf("4 - Remover partida (desabilitado nesta etapa) \n");
-        printf("5 - Inserir partida (desabilitado nesta etapa) \n");
+        printf("3 - Atualizar partida \n");
+        printf("4 - Remover partida \n");
+        printf("5 - Inserir partida \n");
         printf("6 - Imprimir tabela de classificacao \n");
         printf("Q - Sair \n");
 
@@ -34,13 +29,12 @@ int main() {
             break;
         }
 
-        if (acesso == '1') { // consulta estatisticas de um ou mais times
+        if (acesso == '1') {
             char pref[50];
-
             printf("Prefixo: ");
             scanf("%49s", pref);
             buscar_time(&bdt, pref);
-        } else if (acesso == '2') { // consulta partidas por time mandante/visitante
+        } else if (acesso == '2') {
             int modo;
             char nome[50];
 
@@ -54,19 +48,28 @@ int main() {
             printf("Nome/Prefixo: ");
             scanf("%49s", nome);
             consulta_partidas(&bdp, &bdt, nome, modo);
-        } else if (acesso == '6') { // imprime todos os times com a pontuacao acumulada
+        } else if (acesso == '3') {
+            atualizar_partida(&bdp, &bdt);
+            salvar_partidas(&bdp, arquivo_partidas);
+        } else if (acesso == '4') {
+            remover_partida(&bdp, &bdt);
+            salvar_partidas(&bdp, arquivo_partidas);
+        } else if (acesso == '5') {
+            inserir_partida(&bdp, &bdt);
+            salvar_partidas(&bdp, arquivo_partidas);
+        } else if (acesso == '6') {
             imprimir_tabela(&bdt);
             printf("\n");
-        } else if (acesso == '3' || acesso == '4' || acesso == '5') {
-            printf("Funcionalidade desabilitada nesta etapa.\n");
         } else {
-            printf("Opção invalida.\n");
+            printf("Opcao invalida.\n");
         }
-        
+
         printf("\n");
-    
     }
 
+    // Libera toda a memoria alocada antes de encerrar.
+    liberar_times(&bdt);
+    liberar_partidas(&bdp);
 
     return 0;
 }
