@@ -17,7 +17,7 @@ void carrega_times(BDTimes *bd, char *caminho) {
 
     char buffer[100];
 
-    // Pula o cabeçalho do CSV.
+    // Pula a primeira linha, que e o cabecalho do CSV.
     fgets(buffer, sizeof(buffer), f);
 
     while (fgets(buffer, sizeof(buffer), f)) {
@@ -28,10 +28,11 @@ void carrega_times(BDTimes *bd, char *caminho) {
 
             // Aloca um novo nó.
             NodeTime *novo = (NodeTime *)malloc(sizeof(NodeTime));
-            if (!novo) {
+                if (!novo) {
                 printf("Erro de alocacao de memoria.\n");
-                break;
-            }
+                fclose(f);
+                return;
+                }
 
             novo->data = t;
             novo->prox = NULL;
@@ -88,23 +89,27 @@ void buscar_time(BDTimes *bd, char *prefixo) {
 // Copia a lista para um vetor auxiliar e ordena por PG > V > Saldo de Gols.
 static void ordenar_times(NodeTime **vetor, int qtd) {
     for (int i = 0; i < qtd - 1; i++) {
-        for (int j = 0; j < qtd - i - 1; j++) {
+        int maior = i;
+
+        // Procura o maior elemento no restante do vetor.
+        for (int j = i + 1; j < qtd; j++) {
             Time a = vetor[j]->data;
-            Time b = vetor[j + 1]->data;
+            Time b = vetor[maior]->data;
 
             int pg_a = pontos_ganhos(a), pg_b = pontos_ganhos(b);
             int sg_a = saldo_gols(a),    sg_b = saldo_gols(b);
 
-            int trocar = 0;
-            if (pg_a < pg_b) trocar = 1;
-            else if (pg_a == pg_b && a.v < b.v) trocar = 1;
-            else if (pg_a == pg_b && a.v == b.v && sg_a < sg_b) trocar = 1;
+            // Verifica se j é maior que o atual maior, pelos critérios de desempate.
+            if (pg_a > pg_b) maior = j;
+            else if (pg_a == pg_b && a.v > b.v) maior = j;
+            else if (pg_a == pg_b && a.v == b.v && sg_a > sg_b) maior = j;
+        }
 
-            if (trocar) {
-                NodeTime *tmp = vetor[j];
-                vetor[j] = vetor[j + 1];
-                vetor[j + 1] = tmp;
-            }
+        // Troca o maior encontrado com a posição i.
+        if (maior != i) {
+            NodeTime *tmp = vetor[i];
+            vetor[i] = vetor[maior];
+            vetor[maior] = tmp;
         }
     }
 }

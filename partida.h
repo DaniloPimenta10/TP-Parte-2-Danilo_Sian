@@ -10,4 +10,11 @@ typedef struct {
     int gols2;
 } Partida;
 
+// Nó da lista encadeada de partidas
+typedef struct NodePartida {
+    Partida data;
+    struct NodePartida *prox;
+} NodePartida;
+
+
 #endif
