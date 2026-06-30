@@ -28,25 +28,6 @@ static void inserir_no_final(BDPartidas *bdp, Partida p) {
     bdp->qtd++;
 }
 
-// Aplica o resultado de uma partida nas estatisticas dos times envolvidos.
-static void aplicar_estatisticas(Time *t1, Time *t2, int gols1, int gols2) {
-    t1->gm += gols1;
-    t1->gs += gols2;
-    t2->gm += gols2;
-    t2->gs += gols1;
-
-    if (gols1 > gols2) {
-        t1->v += 1;
-        t2->d += 1;
-    } else if (gols1 < gols2) {
-        t2->v += 1;
-        t1->d += 1;
-    } else {
-        t1->e += 1;
-        t2->e += 1;
-    }
-}
-
 // Compara somente o comeco do nome, ignorando maiusculas/minusculas.
 static int prefixo_igual(char *nome, char *prefixo) {
     return strncasecmp(nome, prefixo, strlen(prefixo)) == 0;
@@ -78,7 +59,8 @@ void carrega_partidas(BDPartidas *bdp, BDTimes *bdt, char *caminho) {
 
             // Se a partida tiver algum ID de time invalido, ela e ignorada.
             if (n1 != NULL && n2 != NULL) {
-                aplicar_estatisticas(&n1->data, &n2->data, p.gols1, p.gols2);
+                time_atualizar_estatisticas(&n1->data, p.gols1, p.gols2);
+                time_atualizar_estatisticas(&n2->data, p.gols2, p.gols1);
                 inserir_no_final(bdp, p);
             }
         }
@@ -108,8 +90,8 @@ void consulta_partidas(BDPartidas *bdp, BDTimes *bdt, char *nome, int modo) {
         NodeTime *n2 = buscar_id(bdt, p.idTime2);
 
         if (n1 != NULL && n2 != NULL) {
-            char *nome1 = n1->data.nome;
-            char *nome2 = n2->data.nome;
+            char *nome1 = time_get_nome(&n1->data);
+            char *nome2 = time_get_nome(&n2->data);
             int match = 0;
 
             if (modo == 1 && prefixo_igual(nome1, nome)) {
@@ -185,36 +167,18 @@ void inserir_partida(BDPartidas *bdp, BDTimes *bdt) {
 
     printf("Confirma a insercao do registro abaixo? (S/N)\n");
     printf("ID Time1 Time2 Placar1 Placar2\n");
-    printf("%d %s %s %d %d\n", p.id, n1->data.nome, n2->data.nome, p.gols1, p.gols2);
+    printf("%d %s %s %d %d\n", p.id, time_get_nome(&n1->data), time_get_nome(&n2->data), p.gols1, p.gols2);
 
     char confirma;
     scanf(" %c", &confirma);
 
     if (confirma == 'S' || confirma == 's') {
-        aplicar_estatisticas(&n1->data, &n2->data, gols1, gols2);
+        time_atualizar_estatisticas(&n1->data, gols1, gols2);
+        time_atualizar_estatisticas(&n2->data, gols2, gols1);
         inserir_no_final(bdp, p);
         printf("O registro foi inserido com sucesso.\n");
     } else {
         printf("Insercao cancelada.\n");
-    }
-}
-
-// Desfaz o resultado de uma partida das estatisticas dos times envolvidos.
-static void desfazer_estatisticas(Time *t1, Time *t2, int gols1, int gols2) {
-    t1->gm -= gols1;
-    t1->gs -= gols2;
-    t2->gm -= gols2;
-    t2->gs -= gols1;
-
-    if (gols1 > gols2) {
-        t1->v -= 1;
-        t2->d -= 1;
-    } else if (gols1 < gols2) {
-        t2->v -= 1;
-        t1->d -= 1;
-    } else {
-        t1->e -= 1;
-        t2->e -= 1;
     }
 }
 
@@ -258,7 +222,7 @@ void remover_partida(BDPartidas *bdp, BDTimes *bdt) {
     printf("Tem certeza de que deseja excluir o registro abaixo? (S/N)\n");
     printf("ID Time1 Time2 Placar1 Placar2\n");
     printf("%d %s %s %d %d\n", atual->data.id,
-           n1 ? n1->data.nome : "?", n2 ? n2->data.nome : "?",
+           n1 ? time_get_nome(&n1->data) : "?", n2 ? time_get_nome(&n2->data) : "?",
            atual->data.gols1, atual->data.gols2);
 
     char confirma;
@@ -267,7 +231,8 @@ void remover_partida(BDPartidas *bdp, BDTimes *bdt) {
     if (confirma == 'S' || confirma == 's') {
         // Desfaz o impacto da partida nas estatisticas dos times.
         if (n1 != NULL && n2 != NULL) {
-            desfazer_estatisticas(&n1->data, &n2->data, atual->data.gols1, atual->data.gols2);
+            time_desfazer_estatisticas(&n1->data, atual->data.gols1, atual->data.gols2);
+            time_desfazer_estatisticas(&n2->data, atual->data.gols2, atual->data.gols1);
         }
 
         // Religa a lista pulando o no removido.
@@ -345,7 +310,7 @@ void atualizar_partida(BDPartidas *bdp, BDTimes *bdt) {
 
     printf("Confirma os novos valores para o registro abaixo? (S/N)\n");
     printf("ID Time1 Time2 Placar1 Placar2\n");
-    printf("%d %s %s %d %d\n", atual->data.id, n1->data.nome, n2->data.nome,
+    printf("%d %s %s %d %d\n", atual->data.id, time_get_nome(&n1->data), time_get_nome(&n2->data),
            novoGols1, novoGols2);
 
     char confirma;
@@ -353,8 +318,11 @@ void atualizar_partida(BDPartidas *bdp, BDTimes *bdt) {
 
     if (confirma == 'S' || confirma == 's') {
         // Desfaz o impacto do placar antigo e aplica o novo.
-        desfazer_estatisticas(&n1->data, &n2->data, atual->data.gols1, atual->data.gols2);
-        aplicar_estatisticas(&n1->data, &n2->data, novoGols1, novoGols2);
+        time_desfazer_estatisticas(&n1->data, atual->data.gols1, atual->data.gols2);
+        time_desfazer_estatisticas(&n2->data, atual->data.gols2, atual->data.gols1);
+
+        time_atualizar_estatisticas(&n1->data, novoGols1, novoGols2);
+        time_atualizar_estatisticas(&n2->data, novoGols2, novoGols1);
 
         atual->data.gols1 = novoGols1;
         atual->data.gols2 = novoGols2;

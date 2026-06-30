@@ -1,15 +1,33 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c11 -pedantic -I.
 
-# Regra principal: compila o programa inteiro.
+# Lista de arquivos objeto a partir dos fontes .c.
+OBJS = main.o time.o bd_times.o bd_partidas.o partida.o
+
+# Regra principal: gera o executavel a partir dos objetos.
 all: sistema
 
-# Gera o executavel sistema a partir dos arquivos .c.
-sistema: main.c time.c bd_times.c bd_partidas.c time.h partida.h bd_times.h bd_partidas.h
-	$(CC) $(CFLAGS) -o sistema main.c time.c bd_times.c bd_partidas.c
+sistema: $(OBJS)
+	$(CC) $(CFLAGS) -o sistema $(OBJS)
 
-# Remove o executavel gerado pela compilacao.
+# Regras implicitas: cada .c gera seu .o correspondente.
+main.o: main.c bd_times.h bd_partidas.h
+	$(CC) $(CFLAGS) -c main.c
+
+time.o: time.c time.h
+	$(CC) $(CFLAGS) -c time.c
+
+bd_times.o: bd_times.c bd_times.h time.h
+	$(CC) $(CFLAGS) -c bd_times.c
+
+bd_partidas.o: bd_partidas.c bd_partidas.h partida.h bd_times.h time.h
+	$(CC) $(CFLAGS) -c bd_partidas.c
+
+partida.o: partida.c partida.h
+	$(CC) $(CFLAGS) -c partida.c
+
+# Remove o executavel e os arquivos objeto gerados pela compilacao.
 clean:
-	rm -f sistema
+	rm -f sistema $(OBJS)
 
 .PHONY: all clean
