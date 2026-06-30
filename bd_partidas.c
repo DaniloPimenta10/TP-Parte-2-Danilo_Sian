@@ -81,3 +81,55 @@ void carrega_partidas(BDPartidas *bdp, BDTimes *bdt, char *caminho) {
 
     fclose(f);
 }
+
+// Consulta partidas por time mandante, visitante ou pelos dois modos.
+void consulta_partidas(BDPartidas *bdp, BDTimes *bdt, char *nome, int modo) {
+    if (modo == 4) {
+        return;
+    }
+
+    if (modo < 1 || modo > 3) {
+        printf("Modo invalido.\n");
+        return;
+    }
+
+    int found = 0; // flag: muda para 1 se encontrar partida
+    NodePartida *aux = bdp->inicio;
+
+    while (aux != NULL) {
+        Partida p = aux->data;
+
+        // Recupera os dados completos dos times envolvidos na partida.
+        NodeTime *n1 = buscar_id(bdt, p.idTime1);
+        NodeTime *n2 = buscar_id(bdt, p.idTime2);
+
+        if (n1 != NULL && n2 != NULL) {
+            char *nome1 = n1->data.nome;
+            char *nome2 = n2->data.nome;
+            int match = 0;
+
+            // Decide se a partida atual entra no resultado da consulta.
+            if (modo == 1 && prefixo_igual(nome1, nome)) {
+                match = 1;
+            } else if (modo == 2 && prefixo_igual(nome2, nome)) {
+                match = 1;
+            } else if (modo == 3 && (prefixo_igual(nome1, nome) || prefixo_igual(nome2, nome))) {
+                match = 1;
+            }
+
+            if (match) {
+                if (!found) {
+                    printf("ID Time1                Placar Time2\n");
+                }
+                printf("%d %s %d x %d %s\n", p.id, nome1, p.gols1, p.gols2, nome2);
+                found = 1;
+            }
+        }
+
+        aux = aux->prox;
+    }
+
+    if (!found) {
+        printf("Nenhuma partida encontrada.\n");
+    }
+}

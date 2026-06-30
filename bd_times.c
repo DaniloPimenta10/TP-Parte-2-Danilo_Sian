@@ -56,7 +56,7 @@ void carrega_times(BDTimes *bd, char *caminho) {
 }
 
 // Retorna ponteiro para o time com o ID informado, ou NULL se não encontrar.
-NodeTime *buscar_time_por_id_node(BDTimes *bd, int id) {
+NodeTime *buscar_id(BDTimes *bd, int id) {
     NodeTime *aux = bd->inicio;
     while (aux != NULL) {
         if (aux->data.id == id) return aux;
