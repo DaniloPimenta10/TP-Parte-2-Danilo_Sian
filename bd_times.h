@@ -15,4 +15,7 @@ void buscar_time(BDTimes *bd, char *prefixo);
 void imprimir_tabela(BDTimes *bd);
 void liberar_times(BDTimes *bd); 
 
+// Busca interna por ID, usada pelo modulo de partidas.
+NodeTime *buscar_time_por_id_node(BDTimes *bd, int id);
+
 #endif

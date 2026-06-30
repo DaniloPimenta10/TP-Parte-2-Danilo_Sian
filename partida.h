@@ -1,7 +1,7 @@
 #ifndef PARTIDA_H
 #define PARTIDA_H
 
-// representa uma linha do arquivo de partidas.
+// representa uma  partidas do campeonato.
 typedef struct {
     int id;
     int idTime1;
