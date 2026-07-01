@@ -8,7 +8,7 @@ int main() {
     char acesso = 0;
 
     char arquivo_times[] = "times.csv";
-    char arquivo_partidas[] = "partidas.csv";
+    char arquivo_partidas[] = "partidas_completo.csv";
 
     carrega_times(&bdt, arquivo_times);
     carrega_partidas(&bdp, &bdt, arquivo_partidas);

@@ -17,7 +17,8 @@ static void inserir_no_final(BDPartidas *bdp, Partida p) {
 
     if (bdp->inicio == NULL) {
         bdp->inicio = novo;
-    } else {
+    } 
+    else {
         NodePartida *aux = bdp->inicio;
         while (aux->prox != NULL) {
             aux = aux->prox;
@@ -52,8 +53,7 @@ void carrega_partidas(BDPartidas *bdp, BDTimes *bdt, char *caminho) {
     while (fgets(buffer, sizeof(buffer), f)) {
         Partida p;
 
-        if (sscanf(buffer, "%d,%d,%d,%d,%d",
-                   &p.id, &p.idTime1, &p.idTime2, &p.gols1, &p.gols2) == 5) {
+        if (sscanf(buffer, "%d,%d,%d,%d,%d", &p.id, &p.idTime1, &p.idTime2, &p.gols1, &p.gols2) == 5) {
             NodeTime *n1 = buscar_id(bdt, p.idTime1);
             NodeTime *n2 = buscar_id(bdt, p.idTime2);
 
@@ -96,17 +96,19 @@ void consulta_partidas(BDPartidas *bdp, BDTimes *bdt, char *nome, int modo) {
 
             if (modo == 1 && prefixo_igual(nome1, nome)) {
                 match = 1;
-            } else if (modo == 2 && prefixo_igual(nome2, nome)) {
+            } 
+            else if (modo == 2 && prefixo_igual(nome2, nome)) {
                 match = 1;
-            } else if (modo == 3 && (prefixo_igual(nome1, nome) || prefixo_igual(nome2, nome))) {
+            } 
+            else if (modo == 3 && (prefixo_igual(nome1, nome) || prefixo_igual(nome2, nome))) {
                 match = 1;
             }
 
             if (match) {
                 if (!found) {
-                    printf("ID Time1                Placar Time2\n");
+                    printf("%-4s %-12s %-12s %3s   %3s\n", "ID", "Time1", "Time2", "Pl1", "Pl2");
                 }
-                printf("%d %s %d x %d %s\n", p.id, nome1, p.gols1, p.gols2, nome2);
+                printf("%-4d %-12s %-12s %3d x %3d\n", p.id, nome1, nome2, p.gols1, p.gols2);
                 found = 1;
             }
         }
@@ -166,8 +168,8 @@ void inserir_partida(BDPartidas *bdp, BDTimes *bdt) {
     p.gols2 = gols2;
 
     printf("Confirma a insercao do registro abaixo? (S/N)\n");
-    printf("ID Time1 Time2 Placar1 Placar2\n");
-    printf("%d %s %s %d %d\n", p.id, time_get_nome(&n1->data), time_get_nome(&n2->data), p.gols1, p.gols2);
+    printf("%-4s %-12s %-12s %7s %7s\n", "ID", "Time1", "Time2", "Placar1", "Placar2");
+    printf("%-4d %-12s %-12s %7d %7d\n", p.id, time_get_nome(&n1->data), time_get_nome(&n2->data), p.gols1, p.gols2);
 
     char confirma;
     scanf(" %c", &confirma);
@@ -220,10 +222,8 @@ void remover_partida(BDPartidas *bdp, BDTimes *bdt) {
     NodeTime *n2 = buscar_id(bdt, atual->data.idTime2);
 
     printf("Tem certeza de que deseja excluir o registro abaixo? (S/N)\n");
-    printf("ID Time1 Time2 Placar1 Placar2\n");
-    printf("%d %s %s %d %d\n", atual->data.id,
-           n1 ? time_get_nome(&n1->data) : "?", n2 ? time_get_nome(&n2->data) : "?",
-           atual->data.gols1, atual->data.gols2);
+    printf("%-4s %-12s %-12s %7s %7s\n", "ID", "Time1", "Time2", "Placar1", "Placar2");
+    printf("%-4d %-12s %-12s %7d %7d\n", atual->data.id, time_get_nome(&n1->data), time_get_nome(&n2->data), atual->data.gols1, atual->data.gols2);
 
     char confirma;
     scanf(" %c", &confirma);
@@ -295,8 +295,7 @@ void atualizar_partida(BDPartidas *bdp, BDTimes *bdt) {
     int novoGols1 = atual->data.gols1;
     int novoGols2 = atual->data.gols2;
 
-    printf("Digite o novo valor para os campos Placar1 e Placar2 (para\n");
-    printf("manter o valor atual de um campo, digite '-'):\n");
+    printf("Digite o novo valor para os campos Placar1 e Placar2 (para manter o valor atual de um campo, digite '-'):\n");
 
     scanf("%9s", entrada1);
     scanf("%9s", entrada2);
@@ -309,9 +308,8 @@ void atualizar_partida(BDPartidas *bdp, BDTimes *bdt) {
     }
 
     printf("Confirma os novos valores para o registro abaixo? (S/N)\n");
-    printf("ID Time1 Time2 Placar1 Placar2\n");
-    printf("%d %s %s %d %d\n", atual->data.id, time_get_nome(&n1->data), time_get_nome(&n2->data),
-           novoGols1, novoGols2);
+    printf("%-4s %-12s %-12s %7s %7s\n", "ID", "Time1", "Time2", "Placar1", "Placar2");
+    printf("%-4d %-12s %-12s %7d %7d\n", atual->data.id, time_get_nome(&n1->data), time_get_nome(&n2->data),novoGols1, novoGols2);
 
     char confirma;
     scanf(" %c", &confirma);
